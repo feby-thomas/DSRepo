@@ -1,0 +1,375 @@
+---
+title: "Case Study 2- Attrition Data Analysis"
+author: "Feby Thomas Cheruvathoor"
+date: "12.3.20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+
+
+# Data Import
+
+The following code imports the attrition data into R Studio, from here the data will be cleaned, transformed and modeled to answer various analysis questions and provide insight and key takeaways.
+
+```{r}
+library (readr)
+
+
+attrition_urlfile="https://raw.githubusercontent.com/BivinSadler/MSDS_6306_Doing-Data-Science/Master/Unit%2014%20and%2015%20Case%20Study%202/CaseStudy2-data.csv"
+no_attrition_urlfile="https://raw.githubusercontent.com/BivinSadler/MSDS_6306_Doing-Data-Science/Master/Unit%2014%20and%2015%20Case%20Study%202/CaseStudy2CompSet%20No%20Attrition.csv"
+
+attrition_table <-read_csv(url(attrition_urlfile))
+
+no_attrition_table <-read_csv(url(no_attrition_urlfile))
+
+```
+
+
+# Data Cleanup and remover redudant data 
+
+Following code drops the columns which have stale data points - ID,EmployeeCount,Over18,StandardHours
+
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+
+attrition_table <- subset(attrition_table, select =-c(ID,EmployeeCount,Over18,StandardHours))
+
+attrition_table <- attrition_table %>% select(Attrition,everything())
+
+```
+
+
+Bivariate EDA Analysis to explore the independednt variables with target(Attrition) variable 
+```{r message=FALSE, warning=FALSE}
+library(gt)
+library(RColorBrewer)
+library(ggplot2)
+library(gridExtra)
+
+
+p1 <- attrition_table %>%
+  ggplot(aes(x = Age, fill = Attrition)) +      scale_fill_brewer(palette="Set1") + geom_density(alpha = 0.5) + ggtitle("Age") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+p2 <- attrition_table %>%
+  ggplot(aes(x = YearsInCurrentRole, fill = Attrition)) +   scale_fill_brewer(palette="Set1")+ geom_density(alpha = 0.5) + ggtitle("Years In Current Role")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+p3 <- attrition_table %>%
+  ggplot(aes(x = NumCompaniesWorked, fill = Attrition)) +scale_fill_brewer(palette="Set1")+  geom_density(alpha = 0.5) + ggtitle("Number of Companies")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+p4 <- attrition_table %>%
+  ggplot(aes(x = TotalWorkingYears, fill = Attrition)) + scale_fill_brewer(palette="Set1")+ geom_density(alpha = 0.5) + ggtitle("Total Working Years")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+p5 <- attrition_table %>%
+  ggplot(aes(x = JobLevel, fill = Attrition)) + scale_fill_brewer(palette="Set1")+ geom_density(alpha = 0.5) + ggtitle("Job Level")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+p6 <- attrition_table %>%
+  ggplot(aes(x = MonthlyIncome, fill = Attrition)) + scale_fill_brewer(palette="Set1")+ geom_density(alpha = 0.5) + ggtitle("Monthly Income")  + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+grid.arrange(p1, p2, p3, p4,p5,p6, nrow = 2, ncol = 3)
+
+
+```
+
+Additional Attrition Exploratory Analysis 
+
+```{r message=FALSE, warning=FALSE}
+
+p1 <- attrition_table %>%
+  ggplot(aes(x = PercentSalaryHike, fill = Attrition)) + scale_fill_brewer(palette="Set1")+geom_density(alpha = 0.5) + ggtitle("Percentage Salary Hike") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+
+p2 <- attrition_table %>%
+  ggplot(aes(x = YearsAtCompany, fill = Attrition)) + scale_fill_brewer(palette="Set1")+geom_density(alpha = 0.5) + ggtitle("Years At Company") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+
+
+p3 <- attrition_table %>%
+  ggplot(aes(x = YearsSinceLastPromotion, fill = Attrition)) + geom_density(alpha = 0.5) + ggtitle("Years Since Last Promotion") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+
+p4 <- attrition_table %>%
+  ggplot(aes(x = YearsWithCurrManager, fill = Attrition)) + geom_density(alpha = 0.5) + ggtitle("Years With Current Manager") + theme(plot.title = element_text(size =10),axis.text.x = element_text(size =7,angle = 45, hjust = 1),axis.title.x=element_blank())
+
+
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+
+```
+
+
+###### Change  the class variables and the levels  for the following vaiables
+
+
+```{r message=FALSE, warning=FALSE}
+
+attrition_table$BusinessTravel <- factor(attrition_table$BusinessTravel, levels =  c('Non-Travel','Travel_Rarely','Travel_Frequently'),
+                                         label = c('Non-Travel','Travel_Rarely','Travel_Frequently'))
+
+attrition_table$Department <- factor(attrition_table$Department, levels =  c('Sales','Research & Development','Human Resources'),
+                                     label = c('Sales','Research & Development','Human Resources'))
+
+attrition_table$EducationField <- factor(attrition_table$EducationField, levels =  c('Life Sciences','Medical','Technical Degree','Other','Marketing',
+                                                                                     'Human Resources'),label = c('Life Sciences','Medical','Technical Degree','Other','Marketing','Human Resources'))
+
+attrition_table$Gender <- factor(attrition_table$Gender, levels =  c('Male','Female'),label = c('Male','Female'))
+
+attrition_table$JobRole <- factor(attrition_table$JobRole, levels =  c('Sales Executive','Sales Representative','Research Director','Research Scientist','Manufacturing Director',
+                                                                       'Healthcare Representative','Manager','Human Resources','Laboratory Technician'),label = c('Sales Executive','Sales Representative','Research Director','Research Scientist',
+                                                                                                                                                                  'Manufacturing Director','Healthcare Representative','Manager','Human Resources','Laboratory Technician'))
+
+attrition_table$MaritalStatus <- factor(attrition_table$MaritalStatus,levels =  c('Single','Divorced','Married'),label = c('Single','Divorced','Married'))
+
+attrition_table$OverTime <- factor(attrition_table$OverTime, levels =  c('No','Yes'),label = c('No','Yes'))
+
+attrition_table[sapply(attrition_table,is.factor)]  <- data.matrix(attrition_table[sapply(attrition_table,is.factor)])
+
+attrition_table_org <- attrition_table
+
+attrition_table$Attrition  <- factor(attrition_table$Attrition, levels =  c('No','Yes'),label = c('No','Yes'))
+
+attrition_table[sapply(attrition_table,is.factor)]  <- data.matrix(attrition_table[sapply(attrition_table,is.factor)])
+
+```
+
+# Show the correlation of variables in the attrition table 
+
+
+```{r message=FALSE, warning=FALSE}
+
+library(corrplot)
+
+attrition_table_cor <- attrition_table
+
+attrition_table_cor.cor = cor(attrition_table_cor)
+
+corrplot(attrition_table_cor.cor,method ="number", type="lower", lower.col = "black",tl.col="black", number.cex = .7)
+
+```
+
+#KNN Leave One Out 
+
+
+```{r message=FALSE, warning=FALSE}
+library(class)
+library(caret)
+
+iterations = 100
+numks = 30
+
+nCol  = ncol(attrition_table_org)
+
+data_norm <- function(x) { (x -min(x))/(max(x)-min(x))   }
+
+attrition_table_norm <- as.data.frame(lapply(attrition_table_org[2:nCol],data_norm)) # Omit the Attrition filed
+
+
+attrition_table_train <- attrition_table_norm[1:696,]
+attrition_table_test  <- attrition_table_norm[697:870,]
+
+attrition_table_train_labels <- attrition_table_org[1:696,1]
+attrition_table_test_labels  <- attrition_table_org[697:870,1]
+
+
+masterAcc_l = matrix(nrow=iterations, ncol = numks)
+masterSens_l = matrix(nrow=iterations, ncol = numks)
+masterSpef_l = matrix(nrow=iterations, ncol = numks)
+
+for(j in 1:iterations)
+{
+  accs_l = data.frame(accuracy = numeric(30),k=numeric(30))
+  
+  for(i in 1:30)
+  {
+    
+    classifications_l = knn.cv(attrition_table_train,attrition_table_train_labels$Attrition,prob=TRUE,k=i)
+    
+    CM_l = confusionMatrix(table(attrition_table_train_labels$Attrition,classifications_l)) 
+    masterAcc_l[j,i] = CM_l$overall[1]
+    masterSpef_l[j,i] = CM_l$byClass[2]
+    masterSens_l[j,i] = CM_l$byClass[1]
+    
+  }
+}
+
+meanAcc_l = colMeans(masterAcc_l)
+meanSens_l = colMeans(masterSens_l)
+meanSpef_l = colMeans(masterSpef_l)
+
+k_results_l <- data.frame(kvalue = seq(1,numks,1), 
+                          accuracy_avg = meanAcc_l,
+                          Sensitivity_avg = meanSens_l,
+                          Specificity_avg = meanSpef_l
+)
+
+head(k_results_l%>%arrange(desc(accuracy_avg)))%>%gt()%>%tab_header(title = "KNN-Leave one Out (100 iterations of K:1-30)")
+```
+
+
+# KNN Test/Train Cross Validation
+
+```{r message=FALSE, warning=FALSE}
+
+library(class)
+library(caret)
+
+
+attrition_table_train <- attrition_table_norm[1:696,]
+attrition_table_test  <- attrition_table_norm[697:870,]
+
+attrition_table_train_labels <- attrition_table_org[1:696,1]
+attrition_table_test_labels  <- attrition_table_org[697:870,1]
+
+attrition_table_norm_pred.6 <- knn(attrition_table_train%>%select(JobSatisfaction,MonthlyIncome,Age,EnvironmentSatisfaction,JobLevel,                                                        ,JobInvolvement,StockOptionLevel,TotalWorkingYears,YearsAtCompany,YearsInCurrentRole,YearsWithCurrManager), 
+                                attrition_table_test%>%select(JobSatisfaction,MonthlyIncome,Age,EnvironmentSatisfaction,JobLevel,                                                    ,JobInvolvement,StockOptionLevel,TotalWorkingYears,YearsAtCompany,YearsInCurrentRole,YearsWithCurrManager),
+                                    cl = attrition_table_train_labels$Attrition, prob = TRUE,k=6)
+
+attrition_table_norm_pred.6 <- knn(attrition_table_train%>%select(JobSatisfaction,MonthlyIncome,Age,EnvironmentSatisfaction,JobLevel,
+                                 ,JobInvolvement,StockOptionLevel,TotalWorkingYears,YearsAtCompany,YearsInCurrentRole,YearsWithCurrManager), 
+                                    attrition_table_test%>%select(JobSatisfaction,MonthlyIncome,Age,EnvironmentSatisfaction,JobLevel,
+                                  ,JobInvolvement,StockOptionLevel,TotalWorkingYears,YearsAtCompany,YearsInCurrentRole,YearsWithCurrManager),
+                                    cl = attrition_table_train_labels$Attrition, prob = TRUE,k=6)
+
+
+table(attrition_table_norm_pred.6,attrition_table_test_labels$Attrition)
+
+confusionMatrix(table(attrition_table_norm_pred.6,attrition_table_test_labels$Attrition))
+
+```
+
+
+
+# Question 2
+
+Predict the Attrition for the sample set using the best data model 
+
+
+```{r message=FALSE, warning=FALSE}
+no_attrition_table <- subset(no_attrition_table, select =-c(ID,EmployeeCount,Over18,StandardHours))
+
+nCol2  = ncol(no_attrition_table)
+
+
+no_attrition_table$BusinessTravel <- factor(no_attrition_table$BusinessTravel, levels =  c('Non-Travel','Travel_Rarely','Travel_Frequently'),
+                                            label = c('Non-Travel','Travel_Rarely','Travel_Frequently'))
+
+no_attrition_table$Department <- factor(no_attrition_table$Department, levels =  c('Sales','Research & Development','Human Resources'),
+                                        label = c('Sales','Research & Development','Human Resources'))
+
+no_attrition_table$EducationField <- factor(no_attrition_table$EducationField, levels =  c('Life Sciences','Medical','Technical Degree','Other','Marketing',
+                                                                                           'Human Resources'),label = c('Life Sciences','Medical','Technical Degree','Other','Marketing','Human Resources'))
+
+no_attrition_table$Gender <- factor(no_attrition_table$Gender, levels =  c('Male','Female'),label = c('Male','Female'))
+
+no_attrition_table$JobRole <- factor(no_attrition_table$JobRole, levels =  c('Sales Executive','Sales Representative','Research Director','Research Scientist','Manufacturing Director',
+                                                                             'Healthcare Representative','Manager','Human Resources','Laboratory Technician'),label = c('Sales Executive','Sales Representative','Research Director','Research Scientist',
+                                                                                                                                                                        'Manufacturing Director','Healthcare Representative','Manager','Human Resources','Laboratory Technician'))
+no_attrition_table$MaritalStatus <- factor(no_attrition_table$MaritalStatus,levels =  c('Single','Divorced','Married'),label = c('Single','Divorced','Married'))
+
+no_attrition_table$OverTime <- factor(no_attrition_table$OverTime, levels =  c('No','Yes'),label = c('No','Yes'))
+
+no_attrition_table[sapply(no_attrition_table,is.factor)]  <- data.matrix(no_attrition_table[sapply(no_attrition_table,is.factor)])
+
+no_attrition_table_org <- no_attrition_table
+
+
+data_norm <- function(x) { (x -min(x))/(max(x)-min(x))   }
+
+no_attrition_table_norm <- as.data.frame(lapply(no_attrition_table_org[1:nCol2],data_norm))
+
+
+attrition_table_train <- attrition_table_norm[1:870,]
+no_attrition_table_test  <- no_attrition_table_norm[1:300,]
+
+no_attrition_table_train_labels <- attrition_table_org[1:870,1]
+no_attrition_table_test_labels  <- no_attrition_table_org[1:300,1]
+
+no_attrition_table_norm_pred.6 <- knn(train = attrition_table_train, test = no_attrition_table_test,cl = no_attrition_table_train_labels$Attrition, k=6)
+
+write.csv(no_attrition_table_norm_pred.6,"E://Case2PredictionsCheruvathoor_Attrition.csv", row.names = FALSE)
+
+summary(no_attrition_table_norm_pred.6)
+
+
+```
+
+# Question 3
+
+
+Predict the Salary for the 300 observations provided. 
+
+Use the linear regression model and predict the salary based on the explonatory variables on the train data.
+Identify the coeifficinets and use the model to predict the 300 observation data provided. 
+
+
+```{r message=FALSE, warning=FALSE}
+
+library(coefplot)
+
+no_salary_table <-read_csv("E://CaseStudy2CompSetNoSalary.csv")
+
+no_salary_table_org <- no_salary_table
+
+no_salary_table <- subset(no_salary_table, select =-c(ID,EmployeeCount,Over18,StandardHours))
+
+
+no_salary_table$BusinessTravel <- factor(no_salary_table$BusinessTravel, levels =  c('Non-Travel','Travel_Rarely','Travel_Frequently'),
+                                            label = c('Non-Travel','Travel_Rarely','Travel_Frequently'))
+
+no_salary_table$Department <- factor(no_salary_table$Department, levels =  c('Sales','Research & Development','Human Resources'),
+                                        label = c('Sales','Research & Development','Human Resources'))
+
+no_salary_table$EducationField <- factor(no_salary_table$EducationField, levels =  c('Life Sciences','Medical','Technical Degree','Other','Marketing',
+                                                                                           'Human Resources'),label = c('Life Sciences','Medical','Technical Degree','Other','Marketing','Human Resources'))
+
+no_salary_table$Gender <- factor(no_salary_table$Gender, levels =  c('Male','Female'),label = c('Male','Female'))
+
+no_salary_table$JobRole <- factor(no_salary_table$JobRole, levels =  c('Sales Executive','Sales Representative','Research Director','Research Scientist','Manufacturing Director',
+                                                                             'Healthcare Representative','Manager','Human Resources','Laboratory Technician'),label = c('Sales Executive','Sales Representative','Research Director','Research Scientist',
+                                                                                                                                                                        'Manufacturing Director','Healthcare Representative','Manager','Human Resources','Laboratory Technician'))
+no_salary_table$MaritalStatus <- factor(no_salary_table$MaritalStatus,levels =  c('Single','Divorced','Married'),label = c('Single','Divorced','Married'))
+
+no_salary_table$Attrition <- factor(no_salary_table$Attrition, levels =  c('No','Yes'),label = c('No','Yes'))
+
+no_salary_table$OverTime <- factor(no_salary_table$OverTime, levels =  c('No','Yes'),label = c('No','Yes'))
+
+no_salary_table[sapply(no_salary_table,is.factor)]  <- data.matrix(no_salary_table[sapply(no_salary_table,is.factor)])
+
+
+view(no_salary_table)
+
+nCol3 = ncol(no_salary_table)
+
+data_norm <- function(x) { (x -min(x))/(max(x)-min(x))   }
+
+no_salary_table_norm <- as.data.frame(lapply(no_salary_table[1:nCol3],data_norm))
+
+view(no_salary_table_norm)
+
+#### Normalize the No salary data and now we are good to do the  Mnthly Income predictions
+
+fit <- lm(MonthlyIncome ~ Age+Gender+BusinessTravel+JobRole+DailyRate+Department+DistanceFromHome+Education+
+            EducationField+EmployeeNumber+EnvironmentSatisfaction+Gender+HourlyRate+JobInvolvement+
+            JobLevel+JobRole+JobSatisfaction+MaritalStatus+MonthlyRate+NumCompaniesWorked+
+            PercentSalaryHike+PercentSalaryHike+PerformanceRating+RelationshipSatisfaction+StockOptionLevel+
+            TotalWorkingYears+TrainingTimesLastYear+WorkLifeBalance+
+            YearsAtCompany+YearsInCurrentRole+YearsSinceLastPromotion+YearsWithCurrManager, data = attrition_table_norm)
+
+summary(fit)
+
+coefplot(fit,intercept = FALSE)
+
+no_salary_table_norm$MonthlyIncome  = predict(fit, newdata = no_salary_table_norm)
+
+no_salary_table_org <-  subset(no_salary_table_org, select =c(ID))
+
+no_salary_table_org$MonthlyIncome  = as.integer(no_salary_table_norm$MonthlyIncome *  19999 )
+
+view(no_salary_table_org)
+         
+write.csv(no_salary_table_org,"E://Case2PredictionsCheruvathoor_Salary.csv", row.names = FALSE)
+
+```
